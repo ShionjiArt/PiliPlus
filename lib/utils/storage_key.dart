@@ -271,7 +271,10 @@ abstract final class LocalCacheKey {
       blackMids = 'blackMids',
       danmakuFilterRules = 'danmakuFilterRules',
       mixinKey = 'mixinKey',
-      timeStamp = 'timeStamp';
+      timeStamp = 'timeStamp',
+      cdnNodeList = 'cdnNodeList',
+      cdnNodeListTime = 'cdnNodeListTime',
+      cdnNodeRegion = 'cdnNodeRegion';
 }
 
 abstract final class VideoBoxKey {

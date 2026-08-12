@@ -42,6 +42,7 @@ abstract final class SettingBoxKey {
       horizontalScreen = 'horizontalScreen',
       foldableAutoHorizontal = 'foldableAutoHorizontal',
       CDNService = 'CDNService',
+      customCDNUrl = 'customCDNUrl',
       disableAudioCDN = 'disableAudioCDN',
       autoPiP = 'autoPiP',
       enableAutoLongPressSpeed = 'enableAutoLongPressSpeed',

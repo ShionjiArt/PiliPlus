@@ -1,0 +1,162 @@
+name: iOS Release
+
+# 合并到 release 且 Check 通过后，和最新的 Release 比较：改到了 App 本身
+# （lib/、ios/、assets/、pubspec.*）就编译 iOS 安装包，按规则打标签、发布新的
+# Release，再通知 AltStore 源更新。只改文档、CI 的直接结束。规则见 CLAUDE.md。
+#
+# 手动运行默认是试运行：即使 App 没有改动也编译，只把安装包和说明留在运行页面，
+# 不打标签、不发布。
+on:
+  workflow_run:
+    workflows: [Check]
+    types: [completed]
+    branches: [release]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "试运行：只编译，不打标签、不发布"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# 一次只发一个版本；排队时只留最新的一次（它包含之前所有的改动）。
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Decide
+    # 只看合并到 release 的 push 触发的 Check，PR 上的 Check 不算。
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      sha: ${{ steps.plan.outputs.sha }}
+      prev_tag: ${{ steps.plan.outputs.prev_tag }}
+      tag: ${{ steps.plan.outputs.tag }}
+      title: ${{ steps.plan.outputs.title }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0 # 要比较标签和提交历史
+
+      - name: Decide whether to release
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          python3 .github/ios-release/release.py plan "$SHA"
+          grep -E '^(release|reason|tag|title)=' "$GITHUB_OUTPUT" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build and publish
+    needs: plan
+    if: needs.plan.outputs.release == 'true' || needs.plan.outputs.dry_run == 'true'
+    # 代码用到了 iOS 27.1 SDK 的 API，macos-26 只有 Xcode 26，要用 Xcode 27 的镜像（目前是公开预览）。
+    runs-on: xcode-27
+    timeout-minutes: 90
+    permissions:
+      contents: write # 推标签、发 Release
+      actions: write # 通知 AltStore 源的工作流
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ needs.plan.outputs.sha }}
+      PREV_TAG: ${{ needs.plan.outputs.prev_tag }}
+      TAG: ${{ needs.plan.outputs.tag }}
+      TITLE: ${{ needs.plan.outputs.title }}
+      VERSION: ${{ needs.plan.outputs.version }}
+      PUBLISH: ${{ needs.plan.outputs.release == 'true' && needs.plan.outputs.dry_run != 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 0 # 构建号是提交数
+
+      # 和作者本机同一个 Xcode（镜像默认是 27.1）。
+      - name: Select Xcode 27.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.2.app
+          xcodebuild -version
+
+      - name: Setup flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+
+      - name: Set version
+        shell: pwsh
+        run: lib/scripts/build.ps1
+
+      - name: Apply patches
+        shell: pwsh
+        run: lib/scripts/patch.ps1 iOS
+
+      # 和 ios.yml 一样编译、给 framework 做 ad-hoc 签名、打包。
+      # 文件名规则见 CLAUDE.md「标签」，日期按作者的时区。
+      - name: Build iOS
+        id: build
+        run: |
+          flutter build ios --release --no-codesign --dart-define-from-file=pili_release.json --no-pub
+          ln -sf ./build/ios/iphoneos Payload
+          find Payload/Runner.app/Frameworks -type d -name "*.framework" -exec codesign --force --sign - --preserve-metadata=identifier,entitlements {} \;
+          ipa="PiliPlus_ios_${TAG}_$(TZ=Asia/Tokyo date +%Y%m%d)_${SHA:0:9}_unsigned.ipa"
+          zip -qr9 "$ipa" Payload/Runner.app
+          shasum -a 256 "$ipa" > "$ipa.sha256"
+          plist=Payload/Runner.app/Info.plist
+          {
+            echo "ipa=$ipa"
+            echo "sha256=$(cut -d ' ' -f 1 "$ipa.sha256")"
+            echo "build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")"
+            echo "min_os=$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$plist")"
+          } >> "$GITHUB_OUTPUT"
+          ls -l "$ipa"
+
+      - name: Write release notes
+        env:
+          IPA: ${{ steps.build.outputs.ipa }}
+          SHA256: ${{ steps.build.outputs.sha256 }}
+          BUILD: ${{ steps.build.outputs.build }}
+          MIN_OS: ${{ steps.build.outputs.min_os }}
+        run: |
+          python3 .github/ios-release/release.py notes "$SHA" --prev "$PREV_TAG" --tag "$TAG" --title "$TITLE" \
+            --build "$BUILD" --min-os "$MIN_OS" --ipa "$IPA" --sha256 "$SHA256" > notes.md
+          { echo "## $TITLE（$TAG）"; echo; cat notes.md; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload IPA (dry run)
+        if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ipa-dry-run
+          path: |
+            PiliPlus_ios_*.ipa
+            PiliPlus_ios_*.ipa.sha256
+            notes.md
+          retention-days: 7
+
+      # 标签照 CLAUDE.md 用作者的名字；GITHUB_TOKEN 发的 Release 不会触发 AltStore 源的
+      # Release 事件，所以最后直接运行它。
+      - name: Publish release
+        if: env.PUBLISH == 'true'
+        env:
+          IPA: ${{ steps.build.outputs.ipa }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name sssakuya
+          git config user.email moe@sssakuya.moe
+          git tag -a "$TAG" -m "$TITLE（release @ ${SHA:0:9}，上游 $VERSION）" "$SHA"
+          git push origin "refs/tags/$TAG"
+          gh release create "$TAG" "$IPA" "$IPA.sha256" --repo "$GITHUB_REPOSITORY" \
+            --title "$TITLE" --notes-file notes.md --verify-tag --latest
+          gh workflow run altstore.yml --repo "$GITHUB_REPOSITORY" --ref "$DEFAULT_BRANCH"

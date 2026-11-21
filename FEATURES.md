@@ -92,6 +92,7 @@
 ## 开发
 
 - [x] 每次提 PR 时自动检查代码并运行测试（[#8](https://github.com/ShionjiART/PiliPlus/pull/8)）
+- [x] 合并到 `release` 且检查通过后，改到了 App 就自动编译 iOS 安装包并发布新版本，AltStore 源随后更新（[#73](https://github.com/ShionjiART/PiliPlus/pull/73)）
 - [x] 修复原版中 2 个一直失败的测试（[#7](https://github.com/ShionjiART/PiliPlus/pull/7)）
 - [x] 维护指南 [`CLAUDE.md`](CLAUDE.md)（[#3](https://github.com/ShionjiART/PiliPlus/pull/3)、[#10](https://github.com/ShionjiART/PiliPlus/pull/10)）
 

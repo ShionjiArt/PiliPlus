@@ -30,7 +30,7 @@
 3. 改完后跑 `flutter analyze` 和相关测试。涉及界面的改动，在 iPhone Duo 模拟器上检查合上、展开和旋转；并行时每个任务新建自己的模拟器，不要共用。
 4. 在本仓库开 PR 合并到 `release`，说明改了什么、为什么改、怎么测的。用户能感受到的功能和修复，在同一个 PR 里更新 [`FEATURES.md`](FEATURES.md)：新增一条或把对应的条目打勾，并附上 PR 链接。
 5. 用 merge commit 合并，不用 squash。合并后删除分支（本地和 GitHub 上都删）；改动记录保留在 PR 页面，需要时可以从 PR 页面恢复分支。还要用的分支先保留，例如准备提给上游的分支。
-6. 合并的 PR 改到了 App 本身（会改变安装包内容的，例如 `lib/`、`ios/`、`assets/`、`pubspec.yaml`，同步上游也算），合并后接着按下面「发布安装包」打包并发布新的 Release，不用再单独询问作者。这样 AltStore 源和 App 的「检查更新」都能收到新版本。只改文档、CI 或 AltStore 源的不发。接连合并好几个 PR 时，在最后一个合并后发一次即可。
+6. 合并后不用自己打包：`release` 上的 Check 通过后，`iOS Release` 工作流会和最新的 Release 比较，改到了 App 本身（`lib/`、`ios/`、`assets/`、`pubspec.*`，同步上游也算）就自动编译、打标签、发布新的 Release，并通知 AltStore 源更新；只改文档、CI 的不发。这样 AltStore 源和 App 的「检查更新」都能收到新版本。合并后到 Actions 页面看一下它有没有成功（大约 10 分钟）；失败时修好后重跑，或按下面「发布安装包」手动补发。自动生成的说明只列出合并的 PR，需要时可以改写 Release 说明，AltStore 源会跟着更新。
 
 ## 提交
 
@@ -63,7 +63,12 @@
 
 ## 发布安装包
 
-合并改到 App 本身的 PR 后发布（见「每个改动的流程」第 6 步）：
+平时由 `iOS Release` 工作流（`.github/workflows/ios_release.yml`）在合并后自动发布，见「每个改动的流程」第 6 步。它和下面的手动步骤做的事一样，判断和说明由 `.github/ios-release/release.py` 生成。
+
+- 手动运行 `gh workflow run ios_release.yml --repo ShionjiArt/PiliPlus` 默认是试运行：即使 App 没有改动也编译，安装包和说明留在运行页面（保留 7 天），不打标签、不发布。加 `-f dry_run=false` 才会在 App 有改动时真的发布。
+- 工作流用 GitHub 的 `xcode-27` 镜像，选和作者本机相同的 Xcode 27.2。这个镜像目前是公开预览，转为正式版或升级 Xcode 时要跟着改。
+
+自动发布失败或需要手动发布时，按下面的步骤做：
 
 1. 定标签和标题：用 `gh release list --repo ShionjiArt/PiliPlus` 和 `git ls-remote --tags fork 'duo-*'` 查已有的版本，序号接着最大的加一（规则见「标签」）；标题为「iPhone Duo 适配 v<N>」，N 接着上一个 Release 加一。别的会话可能刚发过，以 GitHub 上的为准。
 2. 从最新的 `fork/release` 新建一个 detached worktree `.claude/worktrees/ipa-<标签>`，在里面打包，日志写到 `logs/`：

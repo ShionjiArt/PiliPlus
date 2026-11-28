@@ -12,7 +12,7 @@ import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart' hide PopupMenuItem;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 sealed class CdnSelectResult {
@@ -83,6 +83,7 @@ class CdnSpeedTester {
     }
     final result = await VideoHttp.videoUrl(
       cid: 196018899,
+      qn: 80,
       bvid: 'BV1fK4y1t7hj',
       tryLook: false,
       videoType: VideoType.ugc,

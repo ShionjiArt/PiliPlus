@@ -6,7 +6,7 @@ import 'package:PiliPlus/utils/cdn_node_store.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart' hide PopupMenuItem;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 /// 二级对话框：按地区浏览 CDN 节点，返回选中的 host
@@ -209,24 +209,25 @@ class _CdnNodeDialogState extends State<CdnNodeDialog> {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   children: [
-                    StaticPopupMenuButton<String>(
+                    PopupMenuButton<String>(
                       initialValue: region,
                       onSelected: _selectRegion,
-                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                      padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
                       itemBuilder: (context) => [
                         for (final item in regions)
-                          PopupMenuItem(
+                          CustomPopupMenuItem(
                             value: item,
                             child: Text(item),
                           ),
                       ],
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(region, style: textTheme.labelLarge),
-                          const Icon(Icons.arrow_drop_down, size: 20),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(region, style: textTheme.labelLarge),
+                            const Icon(Icons.arrow_drop_down, size: 20),
+                          ],
+                        ),
                       ),
                     ),
                     const Spacer(),
@@ -300,3 +301,4 @@ class _CdnNodeDialogState extends State<CdnNodeDialog> {
     );
   }
 }
+

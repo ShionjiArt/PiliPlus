@@ -64,7 +64,7 @@
 - [x] 系统播放器：离线视频倍速最高 3 倍；「所有视频」模式下的普通画质视频，选了系统播放器达不到的倍速或开了超分辨率时改用内置播放器；「缓冲时长」对系统播放器生效；播放信息显示码流的实际格式和屏幕的 HDR 余量（[#64](https://github.com/ShionjiART/PiliPlus/pull/64)）
 - [x] 内置播放器播 HDR：杜比视界 8.4 不再过曝，Profile 5 自动改放 HDR 真彩；新增「内置播放器 HDR 色调映射」设置（[#64](https://github.com/ShionjiART/PiliPlus/pull/64)）
 - [x] 修复打开视频偶尔整块黑屏或有声音没画面（原版也有，见 [bggRGjQaUbCoE/PiliPlus#3246](https://github.com/bggRGjQaUbCoE/PiliPlus/issues/3246)）：被盖住或已关闭的视频页不再抢用播放器，初始化失败时显示封面可点击重试（[#16](https://github.com/ShionjiART/PiliPlus/pull/16)）
-- [x] 视频设置新增 CDN 节点选择：可自定义视频 CDN 域名、按区域挑选节点，并支持测速对比延迟（移植自 [PiliNara](https://github.com/Starfallan/PiliNara) 的 `278d05f81`、`8e0a15460` 等提交；PR 链接待补）
+- [x] 视频设置新增 CDN 节点选择：可自定义视频 CDN 域名、按区域挑选节点，并支持测速对比延迟（移植自 [PiliNara](https://github.com/Starfallan/PiliNara) 的 `278d05f81`、`8e0a15460` 等提交（[#74](https://github.com/ShionjiArt/PiliPlus/pull/74)））
 
 ## 离线缓存
 

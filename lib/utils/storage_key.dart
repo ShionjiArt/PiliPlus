@@ -42,6 +42,7 @@ abstract final class SettingBoxKey {
       horizontalScreen = 'horizontalScreen',
       foldableAutoHorizontal = 'foldableAutoHorizontal',
       CDNService = 'CDNService',
+      customCDNUrl = 'customCDNUrl',
       disableAudioCDN = 'disableAudioCDN',
       autoPiP = 'autoPiP',
       enableAutoLongPressSpeed = 'enableAutoLongPressSpeed',
@@ -270,7 +271,10 @@ abstract final class LocalCacheKey {
       blackMids = 'blackMids',
       danmakuFilterRules = 'danmakuFilterRules',
       mixinKey = 'mixinKey',
-      timeStamp = 'timeStamp';
+      timeStamp = 'timeStamp',
+      cdnNodeList = 'cdnNodeList',
+      cdnNodeListTime = 'cdnNodeListTime',
+      cdnNodeRegion = 'cdnNodeRegion';
 }
 
 abstract final class VideoBoxKey {
